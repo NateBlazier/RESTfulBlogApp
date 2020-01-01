@@ -1,18 +1,19 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const methodOverride = require("method-override");
-const expressSanitizer = require("express-sanitizer");
-const app = express();
-const port = 3000;
+const express               = require("express");
+const bodyParser            = require("body-parser");
+const mongoose              = require("mongoose");
+const methodOverride        = require("method-override");
+const expressSanitizer      = require("express-sanitizer");
+const app                   = express();
+const port                  = 3000;
 
 // --- APP CONFIG
 
-mongoose.connect('mongodb://localhost:27017', {useNewUrlParser: true});
+mongoose.connect('mongodb://localhost:27017/RESTful_Blog_App', {useNewUrlParser: true, useUnifiedTopology: true });
 app.set("view engine", "ejs");
 app.use(express.static("public"));
-app.use(bodyParser.urlencoder({extended: true}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(methodOverride("_method"));
+app.use(expressSanitizer());
 
 // --- DATABASE STUFF -  MONGOOSE/MODEL CONFIG
 
@@ -28,11 +29,11 @@ var blogSchema = new mongoose.Schema({
  var Blog = mongoose.model("Blog", blogSchema);
 
 // TEST Data
-Blog.create({
-    title: "Test Blog",
-    image: "url",
-    body: "Hello there this is the body"
-});
+// Blog.create({
+//     title: "Test Blog",
+//     image: "url",
+//     body: "Hello there this is the body"
+// });
 
 // --- RESTFUL Routes
     // Index
@@ -55,17 +56,20 @@ app.get("/blogs", function(req, res){
         if(err){
             console.log(err);
         }else{
-            res.render("index", {blogs: blog});
+            res.render("index", {blogs: blogs});
         }
     });
 });
 
-//The NEW and Create routes
+// //The NEW route
 app.get("/blogs/new", function(req, res) {
     res.render("new");
 });
+// The Create Route
 app.post("/blogs", function(req, res){
     //create blog
+    //sanitize is so script tags will be removes id a user adds to the textarea
+    req.body.blog.body = req.sanitize(req.body.blog.body);
     Blog.create(req.body.blog, function(err, newBlog){
         if(err){
             console.log(err);
@@ -102,6 +106,8 @@ app.get("/blogs/:id/edit", function(req, res){
 
 //UPDATE ROUTES
 app.put("/blogs/:id", function(req, res){
+    //sanitize is so script tags will be removes id a user adds to the textarea
+    req.body.blog.body = req.sanitize(req.body.blog.body);
     //the below will take three arguments id, newData, callback
     Blog.findByIdAndUpdate(req.params.id, req.body.blog, function(err, updatedBlog){
         if(err){
@@ -118,7 +124,7 @@ app.put("/blogs/:id", function(req, res){
 //DELETE ROUTE
 app.delete("/blogs/:id", function(req, res){
     //Destroy Blog
-    Blob.findByIdAndRemove(req.params.id, function(err){
+    Blog.findByIdAndRemove(req.params.id, function(err){
         if(err){
             console.log(err);
             res.redirect("/blogs");
